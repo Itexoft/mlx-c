@@ -1,22 +1,32 @@
+---
 name: release
-on:
+'on':
   workflow_dispatch:
     inputs:
       tag:
         description: tag
         required: true
 jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
   release:
+    needs: build
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - run: bash build.sh
-    - run: tar -czf build.tar.gz build
-    - uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ github.event.inputs.tag }}
-        files: build.tar.gz
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: build
+          path: .
+      - uses: actions/download-artifact@v4
+        with:
+          name: mlxc-binaries
+          path: .
+      - uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.tag }}
+          files: |
+            build.tar.gz
+            mlxc-binaries.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

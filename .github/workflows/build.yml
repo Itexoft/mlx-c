@@ -1,14 +1,33 @@
+---
 name: build
-on:
-  push:
-  pull_request:
+'on':
+  push: {}
+  pull_request: {}
+  workflow_call: {}
 jobs:
   build:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v4
-    - run: bash build.sh
-    - uses: actions/upload-artifact@v4
-      with:
-        name: build
-        path: build
+      - uses: actions/checkout@v4
+      - run: |
+          mkdir build
+          METAL=$GITHUB_WORKSPACE/build/_deps/mlx-build/mlx/backend/metal/kernels
+          cmake -S . -B build \
+            -DMETAL_PATH=$METAL/mlx.metallib \
+            -DMLX_METAL_PATH=$METAL
+          cmake --build build
+      - run: |
+          cd build
+          tar -czf ../build.tar.gz .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: build.tar.gz
+      - run: |
+          mkdir libs
+          find build -name "*.a" -exec cp {} libs \;
+          tar -czf mlxc-binaries.tar.gz -C libs .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mlxc-binaries
+          path: mlxc-binaries.tar.gz
